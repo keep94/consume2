@@ -119,6 +119,14 @@ func TestComposeEmpty(t *testing.T) {
 	assert.Panics(func() { consumer.Consume(7) })
 }
 
+func TestComposeOne(t *testing.T) {
+	assert := assert.New(t)
+	var zeroTo5 []int
+	consumer := consume2.Compose(consume2.AppendTo(&zeroTo5))
+	feedInts(t, consume2.Slice(consumer, 0, 5))
+	assert.Equal([]int{0, 1, 2, 3, 4}, zeroTo5)
+}
+
 func TestComposeUseIndividual(t *testing.T) {
 	assert := assert.New(t)
 	var strs []string
@@ -234,6 +242,14 @@ func TestComposeFiltersNone(t *testing.T) {
 	assert := assert.New(t)
 	filter := consume2.ComposeFilters[int]()
 	assert.True(filter(7))
+}
+
+func TestComposeFiltersOne(t *testing.T) {
+	assert := assert.New(t)
+	filter := consume2.ComposeFilters(
+		func(value int) bool { return value%2 == 0 })
+	assert.True(filter(8))
+	assert.False(filter(7))
 }
 
 func TestComposeFiltersp(t *testing.T) {

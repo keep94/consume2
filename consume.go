@@ -100,15 +100,22 @@ func TakeWhile[T any](
 // it are not evaluated. The returned filter function returns true for a
 // value only if all the functions in filters return true for that value.
 func ComposeFilters[T any](filters ...func(T) bool) func(T) bool {
-	filterList := make([]func(T) bool, len(filters))
-	copy(filterList, filters)
-	return func(value T) bool {
-		for _, f := range filterList {
-			if !f(value) {
-				return false
+	switch len(filters) {
+	case 0:
+		return trueFunc[T]
+	case 1:
+		return filters[0]
+	default:
+		filterList := make([]func(T) bool, len(filters))
+		copy(filterList, filters)
+		return func(value T) bool {
+			for _, f := range filterList {
+				if !f(value) {
+					return false
+				}
 			}
+			return true
 		}
-		return true
 	}
 }
 
@@ -134,9 +141,16 @@ func MaybeMap[T, U any](
 // consumer returns false when the CanConsume method of all the passed in
 // consumers returns false.
 func Compose[T any](consumers ...Consumer[T]) Consumer[T] {
-	consumerList := make([]Consumer[T], len(consumers))
-	copy(consumerList, consumers)
-	return &multiConsumer[T]{consumers: consumerList}
+	switch len(consumers) {
+	case 0:
+		return nilConsumer[T]{}
+	case 1:
+		return consumers[0]
+	default:
+		consumerList := make([]Consumer[T], len(consumers))
+		copy(consumerList, consumers)
+		return &multiConsumer[T]{consumers: consumerList}
+	}
 }
 
 // Page[T] returns a ConsumeFinalizer[T] that does pagination. The T values in
@@ -348,4 +362,8 @@ func (t *takeWhileConsumer[T]) Consume(value T) {
 		return
 	}
 	t.consumer.Consume(value)
+}
+
+func trueFunc[T any](value T) bool {
+	return true
 }
