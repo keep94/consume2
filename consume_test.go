@@ -152,6 +152,21 @@ func TestComposeUseIndividual(t *testing.T) {
 	assert.Equal([]int{1, 2, 3}, ints)
 }
 
+func TestComposeDefensiveCopy(t *testing.T) {
+	assert := assert.New(t)
+	var x, y []int
+	consumers := []consume2.Consumer[int]{
+		consume2.AppendTo(&x), consume2.AppendTo(&y)}
+	composite := consume2.Compose(consumers...)
+
+	// Mutating consumers shouldn't affect composite
+	consumers[0] = nil
+
+	feedInts(t, consume2.Slice(composite, 0, 1))
+	assert.Equal([]int{0}, x)
+	assert.Equal([]int{0}, y)
+}
+
 func TestSlice(t *testing.T) {
 	assert := assert.New(t)
 	var threeToSeven []int
@@ -250,6 +265,21 @@ func TestComposeFiltersOne(t *testing.T) {
 		func(value int) bool { return value%2 == 0 })
 	assert.True(filter(8))
 	assert.False(filter(7))
+}
+
+func TestComposeFiltersDefensiveCopy(t *testing.T) {
+	assert := assert.New(t)
+	filters := []func(int) bool{
+		func(val int) bool { return val%2 == 0 },
+		func(val int) bool { return val%3 == 0 },
+	}
+	composite := consume2.ComposeFilters(filters...)
+
+	// mutating filters shouldn't affect composite
+	filters[0] = nil
+
+	assert.True(composite(6))
+	assert.False(composite(5))
 }
 
 func TestComposeFiltersp(t *testing.T) {

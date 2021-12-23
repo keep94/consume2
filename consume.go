@@ -100,13 +100,13 @@ func TakeWhile[T any](
 // it are not evaluated. The returned filter function returns true for a
 // value only if all the functions in filters return true for that value.
 func ComposeFilters[T any](filters ...func(T) bool) func(T) bool {
-	switch len(filters) {
+	switch length := len(filters); length {
 	case 0:
 		return trueFunc[T]
 	case 1:
 		return filters[0]
 	default:
-		filterList := make([]func(T) bool, len(filters))
+		filterList := make([]func(T) bool, length)
 		copy(filterList, filters)
 		return func(value T) bool {
 			for _, f := range filterList {
@@ -141,13 +141,13 @@ func MaybeMap[T, U any](
 // consumer returns false when the CanConsume method of all the passed in
 // consumers returns false.
 func Compose[T any](consumers ...Consumer[T]) Consumer[T] {
-	switch len(consumers) {
+	switch length := len(consumers); length {
 	case 0:
 		return nilConsumer[T]{}
 	case 1:
 		return consumers[0]
 	default:
-		consumerList := make([]Consumer[T], len(consumers))
+		consumerList := make([]Consumer[T], length)
 		copy(consumerList, consumers)
 		return &multiConsumer[T]{consumers: consumerList}
 	}
