@@ -189,6 +189,27 @@ func Nil[T any]() Consumer[T] {
 	return nilConsumer[T]{}
 }
 
+// NoGenerics[T] exists for backward compatibility only. NoGenerics[T]
+// implements the github.com/keep94/consume.Consumer interface which does
+// not use generics.
+type NoGenerics[T any] struct {
+	consumer Consumer[T]
+}
+
+// NewNoGenerics[T] returns a wrapper around consumer that implements the
+// old github.com/keep94/consume.Consumer interface.
+func NewNoGenerics[T any](consumer Consumer[T]) *NoGenerics[T] {
+	return &NoGenerics[T]{consumer: consumer}
+}
+
+func (n *NoGenerics[T]) CanConsume() bool {
+	return n.consumer.CanConsume()
+}
+
+func (n *NoGenerics[T]) Consume(ptr interface{}) {
+	n.consumer.Consume(*ptr.(*T))
+}
+
 type appendConsumer[T any] struct {
 	slicePtr *[]T
 }
