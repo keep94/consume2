@@ -57,59 +57,56 @@ func TestConsumerFunc(t *testing.T) {
 	assert.True(consumer.CanConsume())
 }
 
-func TestPageConsumer(t *testing.T) {
+func TestPageConsumer_PageZero(t *testing.T) {
 	assert := assert.New(t)
-	var arr []int
-	var morePages bool
-	pager := consume2.Page(0, 5, &arr, &morePages)
+	pager := consume2.Page[int](0, 5)
 	feedInts(t, pager)
-	pager.Finalize()
-	pager.Finalize() // check idempotency of Finalize
-	assert.Equal([]int{0, 1, 2, 3, 4}, arr)
+	items, morePages := pager.Get()
+	assert.Equal([]int{0, 1, 2, 3, 4}, items)
 	assert.True(morePages)
-	assert.False(pager.CanConsume())
-	assert.Panics(func() { pager.Consume(7) })
+}
 
-	pager = consume2.Page(3, 5, &arr, &morePages)
+func TestPageConsumer_PageThree(t *testing.T) {
+	assert := assert.New(t)
+	pager := consume2.Page[int](3, 5)
 	feedInts(t, pager)
-	pager.Finalize()
-	assert.Equal([]int{15, 16, 17, 18, 19}, arr)
+	items, morePages := pager.Get()
+	assert.Equal([]int{15, 16, 17, 18, 19}, items)
 	assert.True(morePages)
-	assert.False(pager.CanConsume())
-	assert.Panics(func() { pager.Consume(7) })
+}
 
-	pager = consume2.Page(2, 5, &arr, &morePages)
+func TestPageConsumer_NoMorePages(t *testing.T) {
+	assert := assert.New(t)
+	pager := consume2.Page[int](2, 5)
 	feedInts(t, consume2.Slice[int](pager, 0, 15))
-	pager.Finalize()
-	assert.Equal([]int{10, 11, 12, 13, 14}, arr)
+	items, morePages := pager.Get()
+	assert.Equal([]int{10, 11, 12, 13, 14}, items)
 	assert.False(morePages)
-	assert.False(pager.CanConsume())
-	assert.Panics(func() { pager.Consume(7) })
+}
 
-	pager = consume2.Page(2, 5, &arr, &morePages)
+func TestPageConsumer_PartialPage(t *testing.T) {
+	assert := assert.New(t)
+	pager := consume2.Page[int](2, 5)
 	feedInts(t, consume2.Slice[int](pager, 0, 11))
-	pager.Finalize()
-	assert.Equal([]int{10}, arr)
+	items, morePages := pager.Get()
+	assert.Equal([]int{10}, items)
 	assert.False(morePages)
-	assert.False(pager.CanConsume())
-	assert.Panics(func() { pager.Consume(7) })
+}
 
-	pager = consume2.Page(2, 5, &arr, &morePages)
+func TestPageConsumer_EmptyPage(t *testing.T) {
+	assert := assert.New(t)
+	pager := consume2.Page[int](2, 5)
 	feedInts(t, consume2.Slice[int](pager, 0, 10))
-	pager.Finalize()
-	assert.Equal([]int{}, arr)
+	items, morePages := pager.Get()
+	assert.Equal([]int{}, items)
 	assert.False(morePages)
-	assert.False(pager.CanConsume())
-	assert.Panics(func() { pager.Consume(7) })
 }
 
 func TestPageConsumerPanics(t *testing.T) {
 	assert := assert.New(t)
-	var arr []int
-	var morePages bool
-	assert.Panics(func() { consume2.Page(0, -1, &arr, &morePages) })
-	assert.Panics(func() { consume2.Page(0, 0, &arr, &morePages) })
-	assert.Panics(func() { consume2.Page(-1, 5, &arr, &morePages) })
+	assert.Panics(func() { consume2.Page[int](0, -1) })
+	assert.Panics(func() { consume2.Page[int](0, 0) })
+	assert.Panics(func() { consume2.Page[int](-1, 5) })
 }
 
 func TestComposeEmpty(t *testing.T) {
@@ -375,9 +372,7 @@ func BenchmarkAppendTo(b *testing.B) {
 func BenchmarkPagerFilterp(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		var result []person
-		var morePages bool
-		pager := consume2.Page(17, 100, &result, &morePages)
+		pager := consume2.Page[person](17, 100)
 		writePeopleInLoop(
 			people[:],
 			consume2.Filterp[person](
@@ -388,16 +383,14 @@ func BenchmarkPagerFilterp(b *testing.B) {
 				},
 			),
 		)
-		pager.Finalize()
+		pager.Get()
 	}
 }
 
 func BenchmarkPagerMapper(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		var result []person
-		var morePages bool
-		pager := consume2.Page(17, 100, &result, &morePages)
+		pager := consume2.Page[person](17, 100)
 		writePeopleInLoop(
 			people[:],
 			consume2.Map[person, person](
@@ -408,16 +401,14 @@ func BenchmarkPagerMapper(b *testing.B) {
 				},
 			),
 		)
-		pager.Finalize()
+		pager.Get()
 	}
 }
 
 func BenchmarkPagerFilter(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		var result []person
-		var morePages bool
-		pager := consume2.Page(17, 100, &result, &morePages)
+		pager := consume2.Page[person](17, 100)
 		writePeopleInLoop(
 			people[:],
 			consume2.Filter[person](
@@ -427,7 +418,7 @@ func BenchmarkPagerFilter(b *testing.B) {
 				},
 			),
 		)
-		pager.Finalize()
+		pager.Get()
 	}
 }
 

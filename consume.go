@@ -16,16 +16,6 @@ type Consumer[T any] interface {
 	Consume(value T)
 }
 
-// ConsumeFinalizer[T] adds a Finalize method to Consumer[T].
-type ConsumeFinalizer[T any] interface {
-	Consumer[T]
-
-	// Caller must call Finalize after it is done passing values to this
-	// Consumer. Once caller calls Finalize, CanConsume() returns false and
-	// Consume() panics. Calls to Finalize are idempotent.
-	Finalize()
-}
-
 // ConsumerFunc[T] makes any function accepting a T value implement
 // Consumer[T]. CanConsume always returns true.
 type ConsumerFunc[T any] func(value T)
@@ -153,34 +143,50 @@ func Compose[T any](consumers ...Consumer[T]) Consumer[T] {
 	}
 }
 
-// Page[T] returns a ConsumeFinalizer[T] that does pagination. The T values in
-// the page fetched get stored in the slice pointed to by aSlicePtr.
-// If there are more pages after page fetched, Page sets morePages to true;
-// otherwise, it sets morePages to false. Note that the values stored at
-// aSlicePtr and morePages are undefined until caller calls Finalize() on
-// returned ConsumeFinalizer[T]. Page panics if zeroBasedPageNo is negative,
-// or if itemsPerPage <= 0.
-func Page[T any](
-	zeroBasedPageNo int,
-	itemsPerPage int,
-	aSlicePtr *[]T,
-	morePages *bool) ConsumeFinalizer[T] {
+// Pager[T] is a Consumer[T] that fetches a specific page of T values.
+type Pager[T any] struct {
+	consumer      Consumer[T]
+	values        []T
+	valuesPerPage int
+}
+
+func (p *Pager[T]) CanConsume() bool {
+	return p.consumer.CanConsume()
+}
+
+func (p *Pager[T]) Consume(value T) {
+	p.consumer.Consume(value)
+}
+
+// Get returns the desired page of values. morePages is true if there
+// are more pages after the desired page.
+func (p *Pager[T]) Get() (values []T, morePages bool) {
+	length := len(p.values)
+	if length > p.valuesPerPage {
+		length = p.valuesPerPage
+		morePages = true
+	}
+	values = make([]T, length)
+	copy(values, p.values)
+	return
+}
+
+// Page[T] returns a Pager[T] that fetches a specific page of T values.
+// Page panics if zeroBasedPageNo is negative, or if valuesPerPage <= 0.
+func Page[T any](zeroBasedPageNo int, valuesPerPage int) *Pager[T] {
 	if zeroBasedPageNo < 0 {
 		panic("zeroBasedPageNo must be non-negative")
 	}
-	if itemsPerPage <= 0 {
-		panic("itemsPerPage must be positive")
+	if valuesPerPage <= 0 {
+		panic("valuesPerPage must be positive")
 	}
-	ensureEmptyWithCapacity(aSlicePtr, itemsPerPage+1)
-	consumer := Slice(
-		AppendTo(aSlicePtr),
-		zeroBasedPageNo*itemsPerPage,
-		(zeroBasedPageNo+1)*itemsPerPage+1)
-	return &pageConsumer[T]{
-		Consumer:     consumer,
-		itemsPerPage: itemsPerPage,
-		aSlicePtr:    aSlicePtr,
-		morePages:    morePages}
+	result := &Pager[T]{valuesPerPage: valuesPerPage}
+	result.values = make([]T, 0, valuesPerPage+1)
+	result.consumer = Slice(
+		AppendTo(&result.values),
+		zeroBasedPageNo*valuesPerPage,
+		(zeroBasedPageNo+1)*valuesPerPage+1)
+	return result
 }
 
 // Nil[T] returns a Consumer[T] that consumes no T values. The CanConsume()
@@ -323,36 +329,6 @@ func (m *multiConsumer[T]) filterFinished() {
 		m.consumers[i] = nil
 	}
 	m.consumers = m.consumers[0:idx]
-}
-
-type pageConsumer[T any] struct {
-	Consumer[T]
-	itemsPerPage int
-	aSlicePtr    *[]T
-	morePages    *bool
-	finalized    bool
-}
-
-func (p *pageConsumer[T]) Finalize() {
-	if p.finalized {
-		return
-	}
-	p.finalized = true
-	p.Consumer = nilConsumer[T]{}
-	if len(*p.aSlicePtr) == p.itemsPerPage+1 {
-		*p.morePages = true
-		*p.aSlicePtr = (*p.aSlicePtr)[:p.itemsPerPage]
-	} else {
-		*p.morePages = false
-	}
-}
-
-func ensureEmptyWithCapacity[T any](aSlicePtr *[]T, capacity int) {
-	if cap(*aSlicePtr) < capacity {
-		*aSlicePtr = make([]T, 0, capacity)
-	} else {
-		*aSlicePtr = (*aSlicePtr)[:0]
-	}
 }
 
 type nilConsumer[T any] struct {
