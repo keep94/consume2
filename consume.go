@@ -187,8 +187,10 @@ func NewPageBuilder[T any](
 	if valuesPerPage <= 0 {
 		panic("valuesPerPage must be positive")
 	}
-	result := &PageBuilder[T]{valuesPerPage: valuesPerPage}
-	result.values = make([]T, 0, valuesPerPage+1)
+	result := &PageBuilder[T]{
+		valuesPerPage: valuesPerPage,
+		values:        make([]T, 0, valuesPerPage+1),
+	}
 	result.consumer = Slice(
 		AppendTo(&result.values),
 		zeroBasedPageNo*valuesPerPage,

@@ -59,45 +59,45 @@ func TestConsumerFunc(t *testing.T) {
 
 func TestPageBuilder_PageZero(t *testing.T) {
 	assert := assert.New(t)
-	builder := consume2.NewPageBuilder[int](0, 5)
-	feedInts(t, builder)
-	values, morePages := builder.Build()
+	pager := consume2.NewPageBuilder[int](0, 5)
+	feedInts(t, pager)
+	values, morePages := pager.Build()
 	assert.Equal([]int{0, 1, 2, 3, 4}, values)
 	assert.True(morePages)
 }
 
 func TestPageBuilder_PageThree(t *testing.T) {
 	assert := assert.New(t)
-	builder := consume2.NewPageBuilder[int](3, 5)
-	feedInts(t, builder)
-	values, morePages := builder.Build()
+	pager := consume2.NewPageBuilder[int](3, 5)
+	feedInts(t, pager)
+	values, morePages := pager.Build()
 	assert.Equal([]int{15, 16, 17, 18, 19}, values)
 	assert.True(morePages)
 }
 
 func TestPageBuilder_NoMorePages(t *testing.T) {
 	assert := assert.New(t)
-	builder := consume2.NewPageBuilder[int](2, 5)
-	feedInts(t, consume2.Slice[int](builder, 0, 15))
-	values, morePages := builder.Build()
+	pager := consume2.NewPageBuilder[int](2, 5)
+	feedInts(t, consume2.Slice[int](pager, 0, 15))
+	values, morePages := pager.Build()
 	assert.Equal([]int{10, 11, 12, 13, 14}, values)
 	assert.False(morePages)
 }
 
 func TestPageBuilder_PartialPage(t *testing.T) {
 	assert := assert.New(t)
-	builder := consume2.NewPageBuilder[int](2, 5)
-	feedInts(t, consume2.Slice[int](builder, 0, 11))
-	values, morePages := builder.Build()
+	pager := consume2.NewPageBuilder[int](2, 5)
+	feedInts(t, consume2.Slice[int](pager, 0, 11))
+	values, morePages := pager.Build()
 	assert.Equal([]int{10}, values)
 	assert.False(morePages)
 }
 
 func TestPageBuilder_EmptyPage(t *testing.T) {
 	assert := assert.New(t)
-	builder := consume2.NewPageBuilder[int](2, 5)
-	feedInts(t, consume2.Slice[int](builder, 0, 10))
-	values, morePages := builder.Build()
+	pager := consume2.NewPageBuilder[int](2, 5)
+	feedInts(t, consume2.Slice[int](pager, 0, 10))
+	values, morePages := pager.Build()
 	assert.Equal([]int{}, values)
 	assert.False(morePages)
 }
@@ -372,53 +372,53 @@ func BenchmarkAppendTo(b *testing.B) {
 func BenchmarkPagerFilterp(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		builder := consume2.NewPageBuilder[person](17, 100)
+		pager := consume2.NewPageBuilder[person](17, 100)
 		writePeopleInLoop(
 			people[:],
 			consume2.Filterp[person](
-				builder,
+				pager,
 				func(ptr *person) bool {
 					ptr.Age *= 2
 					return true
 				},
 			),
 		)
-		builder.Build()
+		pager.Build()
 	}
 }
 
 func BenchmarkPagerMapper(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		builder := consume2.NewPageBuilder[person](17, 100)
+		pager := consume2.NewPageBuilder[person](17, 100)
 		writePeopleInLoop(
 			people[:],
 			consume2.Map[person, person](
-				builder,
+				pager,
 				func(value person) person {
 					value.Age *= 2
 					return value
 				},
 			),
 		)
-		builder.Build()
+		pager.Build()
 	}
 }
 
 func BenchmarkPagerFilter(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		builder := consume2.NewPageBuilder[person](17, 100)
+		pager := consume2.NewPageBuilder[person](17, 100)
 		writePeopleInLoop(
 			people[:],
 			consume2.Filter[person](
-				builder,
+				pager,
 				func(value person) bool {
 					return value.Name == "Beth"
 				},
 			),
 		)
-		builder.Build()
+		pager.Build()
 	}
 }
 
