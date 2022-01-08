@@ -143,24 +143,29 @@ func Compose[T any](consumers ...Consumer[T]) Consumer[T] {
 	}
 }
 
-// Pager[T] is a Consumer[T] that fetches a specific page of T values.
-type Pager[T any] struct {
+// PageBuilder[T] is a Consumer[T] that builds a specific page of T values.
+// It consumes just enough T values needed to build the desired page.
+type PageBuilder[T any] struct {
 	consumer      Consumer[T]
 	values        []T
 	valuesPerPage int
 }
 
-func (p *Pager[T]) CanConsume() bool {
+// CanConsume returns false when this builder has all the T values it needs
+// to build the desired page.
+func (p *PageBuilder[T]) CanConsume() bool {
 	return p.consumer.CanConsume()
 }
 
-func (p *Pager[T]) Consume(value T) {
+// Consume consumes a single T value.
+func (p *PageBuilder[T]) Consume(value T) {
 	p.consumer.Consume(value)
 }
 
-// Get returns the desired page of values. morePages is true if there
-// are more pages after the desired page.
-func (p *Pager[T]) Get() (values []T, morePages bool) {
+// Build builds the desired page of T values. morePages is true if there
+// are more pages after the desired page. Build is called after this
+// builder has consumed its T values.
+func (p *PageBuilder[T]) Build() (values []T, morePages bool) {
 	length := len(p.values)
 	if length > p.valuesPerPage {
 		length = p.valuesPerPage
@@ -171,16 +176,18 @@ func (p *Pager[T]) Get() (values []T, morePages bool) {
 	return
 }
 
-// Page[T] returns a Pager[T] that fetches a specific page of T values.
-// Page panics if zeroBasedPageNo is negative, or if valuesPerPage <= 0.
-func Page[T any](zeroBasedPageNo int, valuesPerPage int) *Pager[T] {
+// NewPageBuilder[T] creates a PageBuilder[T].
+// NewPageBuilder[T] panics if zeroBasedPageNo is negative, or if
+// valuesPerPage <= 0.
+func NewPageBuilder[T any](
+	zeroBasedPageNo int, valuesPerPage int) *PageBuilder[T] {
 	if zeroBasedPageNo < 0 {
 		panic("zeroBasedPageNo must be non-negative")
 	}
 	if valuesPerPage <= 0 {
 		panic("valuesPerPage must be positive")
 	}
-	result := &Pager[T]{valuesPerPage: valuesPerPage}
+	result := &PageBuilder[T]{valuesPerPage: valuesPerPage}
 	result.values = make([]T, 0, valuesPerPage+1)
 	result.consumer = Slice(
 		AppendTo(&result.values),

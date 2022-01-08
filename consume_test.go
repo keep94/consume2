@@ -57,56 +57,56 @@ func TestConsumerFunc(t *testing.T) {
 	assert.True(consumer.CanConsume())
 }
 
-func TestPageConsumer_PageZero(t *testing.T) {
+func TestPageBuilder_PageZero(t *testing.T) {
 	assert := assert.New(t)
-	pager := consume2.Page[int](0, 5)
-	feedInts(t, pager)
-	items, morePages := pager.Get()
-	assert.Equal([]int{0, 1, 2, 3, 4}, items)
+	builder := consume2.NewPageBuilder[int](0, 5)
+	feedInts(t, builder)
+	values, morePages := builder.Build()
+	assert.Equal([]int{0, 1, 2, 3, 4}, values)
 	assert.True(morePages)
 }
 
-func TestPageConsumer_PageThree(t *testing.T) {
+func TestPageBuilder_PageThree(t *testing.T) {
 	assert := assert.New(t)
-	pager := consume2.Page[int](3, 5)
-	feedInts(t, pager)
-	items, morePages := pager.Get()
-	assert.Equal([]int{15, 16, 17, 18, 19}, items)
+	builder := consume2.NewPageBuilder[int](3, 5)
+	feedInts(t, builder)
+	values, morePages := builder.Build()
+	assert.Equal([]int{15, 16, 17, 18, 19}, values)
 	assert.True(morePages)
 }
 
-func TestPageConsumer_NoMorePages(t *testing.T) {
+func TestPageBuilder_NoMorePages(t *testing.T) {
 	assert := assert.New(t)
-	pager := consume2.Page[int](2, 5)
-	feedInts(t, consume2.Slice[int](pager, 0, 15))
-	items, morePages := pager.Get()
-	assert.Equal([]int{10, 11, 12, 13, 14}, items)
+	builder := consume2.NewPageBuilder[int](2, 5)
+	feedInts(t, consume2.Slice[int](builder, 0, 15))
+	values, morePages := builder.Build()
+	assert.Equal([]int{10, 11, 12, 13, 14}, values)
 	assert.False(morePages)
 }
 
-func TestPageConsumer_PartialPage(t *testing.T) {
+func TestPageBuilder_PartialPage(t *testing.T) {
 	assert := assert.New(t)
-	pager := consume2.Page[int](2, 5)
-	feedInts(t, consume2.Slice[int](pager, 0, 11))
-	items, morePages := pager.Get()
-	assert.Equal([]int{10}, items)
+	builder := consume2.NewPageBuilder[int](2, 5)
+	feedInts(t, consume2.Slice[int](builder, 0, 11))
+	values, morePages := builder.Build()
+	assert.Equal([]int{10}, values)
 	assert.False(morePages)
 }
 
-func TestPageConsumer_EmptyPage(t *testing.T) {
+func TestPageBuilder_EmptyPage(t *testing.T) {
 	assert := assert.New(t)
-	pager := consume2.Page[int](2, 5)
-	feedInts(t, consume2.Slice[int](pager, 0, 10))
-	items, morePages := pager.Get()
-	assert.Equal([]int{}, items)
+	builder := consume2.NewPageBuilder[int](2, 5)
+	feedInts(t, consume2.Slice[int](builder, 0, 10))
+	values, morePages := builder.Build()
+	assert.Equal([]int{}, values)
 	assert.False(morePages)
 }
 
-func TestPageConsumerPanics(t *testing.T) {
+func TestNewPageBuilderPanics(t *testing.T) {
 	assert := assert.New(t)
-	assert.Panics(func() { consume2.Page[int](0, -1) })
-	assert.Panics(func() { consume2.Page[int](0, 0) })
-	assert.Panics(func() { consume2.Page[int](-1, 5) })
+	assert.Panics(func() { consume2.NewPageBuilder[int](0, -1) })
+	assert.Panics(func() { consume2.NewPageBuilder[int](0, 0) })
+	assert.Panics(func() { consume2.NewPageBuilder[int](-1, 5) })
 }
 
 func TestComposeEmpty(t *testing.T) {
@@ -372,53 +372,53 @@ func BenchmarkAppendTo(b *testing.B) {
 func BenchmarkPagerFilterp(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		pager := consume2.Page[person](17, 100)
+		builder := consume2.NewPageBuilder[person](17, 100)
 		writePeopleInLoop(
 			people[:],
 			consume2.Filterp[person](
-				pager,
+				builder,
 				func(ptr *person) bool {
 					ptr.Age *= 2
 					return true
 				},
 			),
 		)
-		pager.Get()
+		builder.Build()
 	}
 }
 
 func BenchmarkPagerMapper(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		pager := consume2.Page[person](17, 100)
+		builder := consume2.NewPageBuilder[person](17, 100)
 		writePeopleInLoop(
 			people[:],
 			consume2.Map[person, person](
-				pager,
+				builder,
 				func(value person) person {
 					value.Age *= 2
 					return value
 				},
 			),
 		)
-		pager.Get()
+		builder.Build()
 	}
 }
 
 func BenchmarkPagerFilter(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		pager := consume2.Page[person](17, 100)
+		builder := consume2.NewPageBuilder[person](17, 100)
 		writePeopleInLoop(
 			people[:],
 			consume2.Filter[person](
-				pager,
+				builder,
 				func(value person) bool {
 					return value.Name == "Beth"
 				},
 			),
 		)
-		pager.Get()
+		builder.Build()
 	}
 }
 
