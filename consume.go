@@ -151,6 +151,28 @@ type PageBuilder[T any] struct {
 	valuesPerPage int
 }
 
+// NewPageBuilder[T] creates a PageBuilder[T].
+// NewPageBuilder[T] panics if zeroBasedPageNo is negative, or if
+// valuesPerPage <= 0.
+func NewPageBuilder[T any](
+	zeroBasedPageNo int, valuesPerPage int) *PageBuilder[T] {
+	if zeroBasedPageNo < 0 {
+		panic("zeroBasedPageNo must be non-negative")
+	}
+	if valuesPerPage <= 0 {
+		panic("valuesPerPage must be positive")
+	}
+	result := &PageBuilder[T]{
+		valuesPerPage: valuesPerPage,
+		values:        make([]T, 0, valuesPerPage+1),
+	}
+	result.consumer = Slice(
+		AppendTo(&result.values),
+		zeroBasedPageNo*valuesPerPage,
+		(zeroBasedPageNo+1)*valuesPerPage+1)
+	return result
+}
+
 // CanConsume returns false when this builder has all the T values it needs
 // to build the desired page.
 func (p *PageBuilder[T]) CanConsume() bool {
@@ -174,28 +196,6 @@ func (p *PageBuilder[T]) Build() (values []T, morePages bool) {
 	values = make([]T, length)
 	copy(values, p.values)
 	return
-}
-
-// NewPageBuilder[T] creates a PageBuilder[T].
-// NewPageBuilder[T] panics if zeroBasedPageNo is negative, or if
-// valuesPerPage <= 0.
-func NewPageBuilder[T any](
-	zeroBasedPageNo int, valuesPerPage int) *PageBuilder[T] {
-	if zeroBasedPageNo < 0 {
-		panic("zeroBasedPageNo must be non-negative")
-	}
-	if valuesPerPage <= 0 {
-		panic("valuesPerPage must be positive")
-	}
-	result := &PageBuilder[T]{
-		valuesPerPage: valuesPerPage,
-		values:        make([]T, 0, valuesPerPage+1),
-	}
-	result.consumer = Slice(
-		AppendTo(&result.values),
-		zeroBasedPageNo*valuesPerPage,
-		(zeroBasedPageNo+1)*valuesPerPage+1)
-	return result
 }
 
 // Nil[T] returns a Consumer[T] that consumes no T values. The CanConsume()
