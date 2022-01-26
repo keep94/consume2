@@ -41,14 +41,14 @@ func MustCanConsume[T any](c Consumer[T]) {
 // pointed to by aSlicePtr. The CanConsume method of returned consumer
 // always returns true.
 func AppendTo[T any](aSlicePtr *[]T) Consumer[T] {
-	return &appendConsumer[T]{slicePtr: aSlicePtr}
+	return (*appendConsumer[T])(aSlicePtr)
 }
 
 // AppendPtrsTo[T] returns a Consumer[T] that appends pointers to values
 // to the slice pointed to by aSlicePtr. The CanConsume method of returned
 // consumer always returns true.
 func AppendPtrsTo[T any](aSlicePtr *[]*T) Consumer[T] {
-	return &appendPtrConsumer[T]{slicePtr: aSlicePtr}
+	return (*appendPtrConsumer[T])(aSlicePtr)
 }
 
 // Slice[T] returns a Consumer[T] that passes the start th value consumed
@@ -225,24 +225,20 @@ func (n *NoGenerics[T]) Consume(ptr interface{}) {
 	n.consumer.Consume(*ptr.(*T))
 }
 
-type appendConsumer[T any] struct {
-	slicePtr *[]T
-}
+type appendConsumer[T any] []T
 
 func (a *appendConsumer[T]) CanConsume() bool { return true }
 
 func (a *appendConsumer[T]) Consume(value T) {
-	*a.slicePtr = append(*a.slicePtr, value)
+	*a = append(*a, value)
 }
 
-type appendPtrConsumer[T any] struct {
-	slicePtr *[]*T
-}
+type appendPtrConsumer[T any] []*T
 
 func (a *appendPtrConsumer[T]) CanConsume() bool { return true }
 
 func (a *appendPtrConsumer[T]) Consume(value T) {
-	*a.slicePtr = append(*a.slicePtr, &value)
+	*a = append(*a, &value)
 }
 
 type sliceConsumer[T any] struct {
