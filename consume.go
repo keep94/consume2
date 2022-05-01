@@ -9,7 +9,7 @@ const (
 type Consumer[T any] interface {
 
 	// CanConsume returns true if this instance can consume a value.
-	// once CanConsume returns false, it should always return false.
+	// Once CanConsume returns false, it should always return false.
 	CanConsume() bool
 
 	// Consume consumes a value. Consume panics if CanConsume returns false.
@@ -28,13 +28,6 @@ func (c ConsumerFunc[T]) Consume(value T) {
 // CanConsume always returns true.
 func (c ConsumerFunc[T]) CanConsume() bool {
 	return true
-}
-
-// MustCanConsume[T] panics if c cannot consume.
-func MustCanConsume[T any](c Consumer[T]) {
-	if !c.CanConsume() {
-		panic(kCantConsume)
-	}
 }
 
 // AppendTo[T] returns a Consumer[T] that appends values to the slice
@@ -61,7 +54,7 @@ func Slice[T any](consumer Consumer[T], start, end int) Consumer[T] {
 }
 
 // Filter[T] returns a Consumer[T] that passes only the values for which the
-// filter function true onto the underlying consumer.
+// filter function returns true onto the underlying consumer.
 func Filter[T any](
 	consumer Consumer[T], filter func(value T) bool) Consumer[T] {
 	return &filterConsumer[T]{Consumer: consumer, filter: filter}
@@ -204,27 +197,6 @@ func Nil[T any]() Consumer[T] {
 	return nilConsumer[T]{}
 }
 
-// NoGenerics[T] exists for backward compatibility only. NoGenerics[T]
-// implements the github.com/keep94/consume.Consumer interface which does
-// not use generics.
-type NoGenerics[T any] struct {
-	consumer Consumer[T]
-}
-
-// NewNoGenerics[T] returns a wrapper around consumer that implements the
-// old github.com/keep94/consume.Consumer interface.
-func NewNoGenerics[T any](consumer Consumer[T]) *NoGenerics[T] {
-	return &NoGenerics[T]{consumer: consumer}
-}
-
-func (n *NoGenerics[T]) CanConsume() bool {
-	return n.consumer.CanConsume()
-}
-
-func (n *NoGenerics[T]) Consume(ptr interface{}) {
-	n.consumer.Consume(*ptr.(*T))
-}
-
 type appendConsumer[T any] []T
 
 func (a *appendConsumer[T]) CanConsume() bool { return true }
@@ -253,7 +225,9 @@ func (s *sliceConsumer[T]) CanConsume() bool {
 }
 
 func (s *sliceConsumer[T]) Consume(value T) {
-	MustCanConsume[T](s)
+	if !s.CanConsume() {
+		panic(kCantConsume)
+	}
 	if s.idx >= s.start {
 		s.consumer.Consume(value)
 	}
@@ -266,7 +240,9 @@ type filterConsumer[T any] struct {
 }
 
 func (f *filterConsumer[T]) Consume(value T) {
-	MustCanConsume[T](f)
+	if !f.CanConsume() {
+		panic(kCantConsume)
+	}
 	if f.filter(value) {
 		f.Consumer.Consume(value)
 	}
@@ -278,7 +254,9 @@ type filterpConsumer[T any] struct {
 }
 
 func (f *filterpConsumer[T]) Consume(value T) {
-	MustCanConsume[T](f)
+	if !f.CanConsume() {
+		panic(kCantConsume)
+	}
 	if f.filter(&value) {
 		f.Consumer.Consume(value)
 	}
@@ -290,7 +268,9 @@ type mapConsumer[T, U any] struct {
 }
 
 func (m *mapConsumer[T, U]) Consume(value T) {
-	MustCanConsume[T](m)
+	if !m.CanConsume() {
+		panic(kCantConsume)
+	}
 	m.Consumer.Consume(m.mapper(value))
 }
 
@@ -300,7 +280,9 @@ type maybeMapConsumer[T, U any] struct {
 }
 
 func (m *maybeMapConsumer[T, U]) Consume(value T) {
-	MustCanConsume[T](m)
+	if !m.CanConsume() {
+		panic(kCantConsume)
+	}
 	if mvalue, ok := m.mapper(value); ok {
 		m.Consumer.Consume(mvalue)
 	}
@@ -316,7 +298,9 @@ func (m *multiConsumer[T]) CanConsume() bool {
 }
 
 func (m *multiConsumer[T]) Consume(value T) {
-	MustCanConsume[T](m)
+	if !m.CanConsume() {
+		panic(kCantConsume)
+	}
 	for _, consumer := range m.consumers {
 		consumer.Consume(value)
 	}
@@ -358,7 +342,9 @@ func (t *takeWhileConsumer[T]) CanConsume() bool {
 }
 
 func (t *takeWhileConsumer[T]) Consume(value T) {
-	MustCanConsume[T](t)
+	if !t.CanConsume() {
+		panic(kCantConsume)
+	}
 	if !t.filter(value) {
 		t.done = true
 		return

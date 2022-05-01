@@ -36,15 +36,6 @@ func TestNil(t *testing.T) {
 	assert.Panics(func() { consumer.Consume(7) })
 }
 
-func TestMustCanConsume(t *testing.T) {
-	assert := assert.New(t)
-	nilConsumer := consume2.Nil[int]()
-	assert.Panics(func() { consume2.MustCanConsume(nilConsumer) })
-	var x []int
-	consumer := consume2.AppendTo(&x)
-	assert.NotPanics(func() { consume2.MustCanConsume(consumer) })
-}
-
 func TestConsumerFunc(t *testing.T) {
 	assert := assert.New(t)
 	var x int
@@ -144,6 +135,7 @@ func TestComposeUseIndividual(t *testing.T) {
 
 	// Now the composite consumer should return false
 	assert.False(composite.CanConsume())
+	assert.Panics(func() { composite.Consume(4) })
 
 	assert.Equal([]string{"1"}, strs)
 	assert.Equal([]int{1, 2, 3}, ints)
@@ -344,20 +336,6 @@ func TestAppendPtrsTo(t *testing.T) {
 		},
 		result,
 	)
-}
-
-func TestNoGenerics(t *testing.T) {
-	assert := assert.New(t)
-	var strs []string
-	oldConsumer := consume2.NewNoGenerics(
-		consume2.Slice(consume2.AppendTo(&strs), 0, 2))
-	for _, s := range []string{"hello", "world", "extra"} {
-		if !oldConsumer.CanConsume() {
-			break
-		}
-		oldConsumer.Consume(&s)
-	}
-	assert.Equal([]string{"hello", "world"}, strs)
 }
 
 func BenchmarkAppendTo(b *testing.B) {
