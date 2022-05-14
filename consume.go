@@ -1,10 +1,6 @@
 // Package consume2 provides ways to consume go values using generics.
 package consume2
 
-const (
-	kCantConsume = "Can't consume"
-)
-
 // Consumer[T] consumes values of type T.
 type Consumer[T any] interface {
 
@@ -12,7 +8,8 @@ type Consumer[T any] interface {
 	// Once CanConsume returns false, it should always return false.
 	CanConsume() bool
 
-	// Consume consumes a value. Consume panics if CanConsume returns false.
+	// Consume consumes a value. If CanConsume returns false, calling Consume
+	// does not consume the value.
 	Consume(value T)
 }
 
@@ -192,7 +189,7 @@ func (p *PageBuilder[T]) Build() (values []T, morePages bool) {
 }
 
 // Nil[T] returns a Consumer[T] that consumes no T values. The CanConsume()
-// method always returns false and the Consume() method always panics.
+// method always returns false and the Consume() method does nothing.
 func Nil[T any]() Consumer[T] {
 	return nilConsumer[T]{}
 }
@@ -221,12 +218,12 @@ type sliceConsumer[T any] struct {
 }
 
 func (s *sliceConsumer[T]) CanConsume() bool {
-	return s.consumer.CanConsume() && s.idx < s.end
+	return s.idx < s.end && s.consumer.CanConsume()
 }
 
 func (s *sliceConsumer[T]) Consume(value T) {
-	if !s.CanConsume() {
-		panic(kCantConsume)
+	if s.idx >= s.end {
+		return
 	}
 	if s.idx >= s.start {
 		s.consumer.Consume(value)
@@ -240,9 +237,6 @@ type filterConsumer[T any] struct {
 }
 
 func (f *filterConsumer[T]) Consume(value T) {
-	if !f.CanConsume() {
-		panic(kCantConsume)
-	}
 	if f.filter(value) {
 		f.Consumer.Consume(value)
 	}
@@ -254,9 +248,6 @@ type filterpConsumer[T any] struct {
 }
 
 func (f *filterpConsumer[T]) Consume(value T) {
-	if !f.CanConsume() {
-		panic(kCantConsume)
-	}
 	if f.filter(&value) {
 		f.Consumer.Consume(value)
 	}
@@ -268,9 +259,6 @@ type mapConsumer[T, U any] struct {
 }
 
 func (m *mapConsumer[T, U]) Consume(value T) {
-	if !m.CanConsume() {
-		panic(kCantConsume)
-	}
 	m.Consumer.Consume(m.mapper(value))
 }
 
@@ -280,9 +268,6 @@ type maybeMapConsumer[T, U any] struct {
 }
 
 func (m *maybeMapConsumer[T, U]) Consume(value T) {
-	if !m.CanConsume() {
-		panic(kCantConsume)
-	}
 	if mvalue, ok := m.mapper(value); ok {
 		m.Consumer.Consume(mvalue)
 	}
@@ -298,9 +283,6 @@ func (m *multiConsumer[T]) CanConsume() bool {
 }
 
 func (m *multiConsumer[T]) Consume(value T) {
-	if !m.CanConsume() {
-		panic(kCantConsume)
-	}
 	for _, consumer := range m.consumers {
 		consumer.Consume(value)
 	}
@@ -328,7 +310,6 @@ func (n nilConsumer[T]) CanConsume() bool {
 }
 
 func (n nilConsumer[T]) Consume(value T) {
-	panic(kCantConsume)
 }
 
 type takeWhileConsumer[T any] struct {
@@ -338,12 +319,12 @@ type takeWhileConsumer[T any] struct {
 }
 
 func (t *takeWhileConsumer[T]) CanConsume() bool {
-	return t.consumer.CanConsume() && !t.done
+	return !t.done && t.consumer.CanConsume()
 }
 
 func (t *takeWhileConsumer[T]) Consume(value T) {
-	if !t.CanConsume() {
-		panic(kCantConsume)
+	if t.done {
+		return
 	}
 	if !t.filter(value) {
 		t.done = true

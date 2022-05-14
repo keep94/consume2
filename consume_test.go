@@ -33,7 +33,7 @@ func TestNil(t *testing.T) {
 	assert := assert.New(t)
 	consumer := consume2.Nil[int]()
 	assert.False(consumer.CanConsume())
-	assert.Panics(func() { consumer.Consume(7) })
+	consumer.Consume(7)
 }
 
 func TestConsumerFunc(t *testing.T) {
@@ -51,7 +51,7 @@ func TestConsumerFunc(t *testing.T) {
 func TestPageBuilder_PageZero(t *testing.T) {
 	assert := assert.New(t)
 	pager := consume2.NewPageBuilder[int](0, 5)
-	feedInts(t, pager)
+	feedInts(pager)
 	values, morePages := pager.Build()
 	assert.Equal([]int{0, 1, 2, 3, 4}, values)
 	assert.True(morePages)
@@ -60,7 +60,7 @@ func TestPageBuilder_PageZero(t *testing.T) {
 func TestPageBuilder_PageThree(t *testing.T) {
 	assert := assert.New(t)
 	pager := consume2.NewPageBuilder[int](3, 5)
-	feedInts(t, pager)
+	feedInts(pager)
 	values, morePages := pager.Build()
 	assert.Equal([]int{15, 16, 17, 18, 19}, values)
 	assert.True(morePages)
@@ -69,7 +69,7 @@ func TestPageBuilder_PageThree(t *testing.T) {
 func TestPageBuilder_NoMorePages(t *testing.T) {
 	assert := assert.New(t)
 	pager := consume2.NewPageBuilder[int](2, 5)
-	feedInts(t, consume2.Slice[int](pager, 0, 15))
+	feedInts(consume2.Slice[int](pager, 0, 15))
 	values, morePages := pager.Build()
 	assert.Equal([]int{10, 11, 12, 13, 14}, values)
 	assert.False(morePages)
@@ -78,7 +78,7 @@ func TestPageBuilder_NoMorePages(t *testing.T) {
 func TestPageBuilder_PartialPage(t *testing.T) {
 	assert := assert.New(t)
 	pager := consume2.NewPageBuilder[int](2, 5)
-	feedInts(t, consume2.Slice[int](pager, 0, 11))
+	feedInts(consume2.Slice[int](pager, 0, 11))
 	values, morePages := pager.Build()
 	assert.Equal([]int{10}, values)
 	assert.False(morePages)
@@ -87,7 +87,7 @@ func TestPageBuilder_PartialPage(t *testing.T) {
 func TestPageBuilder_EmptyPage(t *testing.T) {
 	assert := assert.New(t)
 	pager := consume2.NewPageBuilder[int](2, 5)
-	feedInts(t, consume2.Slice[int](pager, 0, 10))
+	feedInts(consume2.Slice[int](pager, 0, 10))
 	values, morePages := pager.Build()
 	assert.Equal([]int{}, values)
 	assert.False(morePages)
@@ -104,14 +104,14 @@ func TestComposeEmpty(t *testing.T) {
 	assert := assert.New(t)
 	consumer := consume2.Compose[int]()
 	assert.False(consumer.CanConsume())
-	assert.Panics(func() { consumer.Consume(7) })
+	consumer.Consume(7)
 }
 
 func TestComposeOne(t *testing.T) {
 	assert := assert.New(t)
 	var zeroTo5 []int
 	consumer := consume2.Compose(consume2.AppendTo(&zeroTo5))
-	feedInts(t, consume2.Slice(consumer, 0, 5))
+	feedInts(consume2.Slice(consumer, 0, 5))
 	assert.Equal([]int{0, 1, 2, 3, 4}, zeroTo5)
 }
 
@@ -135,7 +135,7 @@ func TestComposeUseIndividual(t *testing.T) {
 
 	// Now the composite consumer should return false
 	assert.False(composite.CanConsume())
-	assert.Panics(func() { composite.Consume(4) })
+	composite.Consume(4)
 
 	assert.Equal([]string{"1"}, strs)
 	assert.Equal([]int{1, 2, 3}, ints)
@@ -151,7 +151,7 @@ func TestComposeDefensiveCopy(t *testing.T) {
 	// Mutating consumers shouldn't affect composite
 	consumers[0] = nil
 
-	feedInts(t, consume2.Slice(composite, 0, 1))
+	feedInts(consume2.Slice(composite, 0, 1))
 	assert.Equal([]int{0}, x)
 	assert.Equal([]int{0}, y)
 }
@@ -159,28 +159,28 @@ func TestComposeDefensiveCopy(t *testing.T) {
 func TestSlice(t *testing.T) {
 	assert := assert.New(t)
 	var threeToSeven []int
-	feedInts(t, consume2.Slice(consume2.AppendTo(&threeToSeven), 3, 7))
+	feedInts(consume2.Slice(consume2.AppendTo(&threeToSeven), 3, 7))
 	assert.Equal([]int{3, 4, 5, 6}, threeToSeven)
 }
 
 func TestSliceNegative(t *testing.T) {
 	assert := assert.New(t)
 	var zeroToFive []int
-	feedInts(t, consume2.Slice(consume2.AppendTo(&zeroToFive), -1, 5))
+	feedInts(consume2.Slice(consume2.AppendTo(&zeroToFive), -1, 5))
 	assert.Equal([]int{0, 1, 2, 3, 4}, zeroToFive)
 	var none []int
-	feedInts(t, consume2.Slice(consume2.AppendTo(&none), 5, -1))
-	feedInts(t, consume2.Slice(consume2.AppendTo(&none), -3, -1))
-	feedInts(t, consume2.Slice(consume2.AppendTo(&none), -1, -3))
-	feedInts(t, consume2.Slice(consume2.AppendTo(&none), -2, 0))
-	feedInts(t, consume2.Slice(consume2.AppendTo(&none), 0, -2))
+	feedInts(consume2.Slice(consume2.AppendTo(&none), 5, -1))
+	feedInts(consume2.Slice(consume2.AppendTo(&none), -3, -1))
+	feedInts(consume2.Slice(consume2.AppendTo(&none), -1, -3))
+	feedInts(consume2.Slice(consume2.AppendTo(&none), -2, 0))
+	feedInts(consume2.Slice(consume2.AppendTo(&none), 0, -2))
 	assert.Empty(none)
 }
 
 func TestFilter(t *testing.T) {
 	assert := assert.New(t)
 	var sevensTo28 []int
-	feedInts(t, consume2.Filter(
+	feedInts(consume2.Filter(
 		consume2.Slice(consume2.AppendTo(&sevensTo28), 1, 4),
 		func(value int) bool { return value%7 == 0 }))
 	assert.Equal([]int{7, 14, 21}, sevensTo28)
@@ -189,7 +189,7 @@ func TestFilter(t *testing.T) {
 func TestFilterp(t *testing.T) {
 	assert := assert.New(t)
 	var fiftiesTo300 []int
-	feedInts(t, consume2.Filterp(
+	feedInts(consume2.Filterp(
 		consume2.Slice(consume2.AppendTo(&fiftiesTo300), 1, 6),
 		func(ptr *int) bool {
 			if (*ptr)%5 != 0 {
@@ -204,7 +204,7 @@ func TestFilterp(t *testing.T) {
 func TestMap(t *testing.T) {
 	assert := assert.New(t)
 	var zeroTo5 []string
-	feedInts(t, consume2.Map(
+	feedInts(consume2.Map(
 		consume2.Slice(consume2.AppendTo(&zeroTo5), 0, 5),
 		strconv.Itoa))
 	assert.Equal([]string{"0", "1", "2", "3", "4"}, zeroTo5)
@@ -213,7 +213,7 @@ func TestMap(t *testing.T) {
 func TestMaybeMap(t *testing.T) {
 	assert := assert.New(t)
 	var zeroTo10By2 []string
-	feedInts(t, consume2.MaybeMap(
+	feedInts(consume2.MaybeMap(
 		consume2.Slice(consume2.AppendTo(&zeroTo10By2), 0, 5),
 		func(value int) (str string, ok bool) {
 			if value%2 == 1 {
@@ -227,16 +227,18 @@ func TestMaybeMap(t *testing.T) {
 func TestTakeWhile(t *testing.T) {
 	assert := assert.New(t)
 	var zeroTo4 []int
-	feedInts(t, consume2.TakeWhile(
+	consumer := consume2.TakeWhile(
 		consume2.AppendTo(&zeroTo4),
-		func(value int) bool { return value < 4 }))
+		func(value int) bool { return value < 4 })
+	feedInts(consumer)
+	consumer.Consume(1)
 	assert.Equal([]int{0, 1, 2, 3}, zeroTo4)
 }
 
 func TestTakeWhileInnerFinishes(t *testing.T) {
 	assert := assert.New(t)
 	var zeroTo4 []int
-	feedInts(t, consume2.TakeWhile(
+	feedInts(consume2.TakeWhile(
 		consume2.Slice(consume2.AppendTo(&zeroTo4), 0, 4),
 		func(value int) bool { return true }))
 	assert.Equal([]int{0, 1, 2, 3}, zeroTo4)
@@ -282,7 +284,7 @@ func TestComposeFiltersp(t *testing.T) {
 		},
 	)
 	var to1200By300 []int
-	feedInts(t, consume2.TakeWhile(
+	feedInts(consume2.TakeWhile(
 		consume2.Filterp(consume2.AppendTo(&to1200By300), filter),
 		func(value int) bool { return value < 120 }))
 	assert.Equal([]int{0, 300, 600, 900}, to1200By300)
@@ -296,7 +298,7 @@ func TestComposeFilters(t *testing.T) {
 		func(value int) bool { return value%5 == 0 },
 	)
 	var to120By30 []int
-	feedInts(t, consume2.TakeWhile(
+	feedInts(consume2.TakeWhile(
 		consume2.Filter(consume2.AppendTo(&to120By30), filter),
 		func(value int) bool { return value < 120 }))
 	assert.Equal([]int{0, 30, 60, 90}, to120By30)
@@ -400,16 +402,13 @@ func BenchmarkPagerFilter(b *testing.B) {
 	}
 }
 
-func feedInts(t *testing.T, consumer consume2.Consumer[int]) {
-	assert := assert.New(t)
+func feedInts(consumer consume2.Consumer[int]) {
 	idx := 0
 	for consumer.CanConsume() {
 		consumer.Consume(idx)
 		idx++
 	}
-	assert.Panics(func() {
-		consumer.Consume(idx)
-	})
+	consumer.Consume(idx)
 }
 
 func writePeopleInLoop(
