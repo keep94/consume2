@@ -13,6 +13,16 @@ type Consumer[T any] interface {
 	Consume(value T)
 }
 
+// AsFunc converts a Consumer into a function that consumes its paramter
+// and returns false when no more values can be consumed. AsFunc allows
+// interoperability with other go packages such as github.com/google/btree.
+func AsFunc[T any](consumer Consumer[T]) func(T) bool {
+	return func(value T) bool {
+		consumer.Consume(value)
+		return consumer.CanConsume()
+	}
+}
+
 // ConsumerFunc[T] makes any function accepting a T value implement
 // Consumer[T]. CanConsume always returns true.
 type ConsumerFunc[T any] func(value T)

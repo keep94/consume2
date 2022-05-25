@@ -340,6 +340,15 @@ func TestAppendPtrsTo(t *testing.T) {
 	)
 }
 
+func TestAsFunc(t *testing.T) {
+	assert := assert.New(t)
+	var result []string
+	f := consume2.AsFunc(consume2.Slice(consume2.AppendTo(&result), 0, 2))
+	assert.True(f("Hello"))
+	assert.False(f("World"))
+	assert.Equal([]string{"Hello", "World"}, result)
+}
+
 func BenchmarkAppendTo(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
