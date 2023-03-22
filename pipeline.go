@@ -19,9 +19,9 @@ func (p Pipeline[T, U]) AppendTo(aSlicePtr *[]U) Consumer[T] {
 
 // Join joins two pipelines into a single pipeline.
 func Join[T, U, V any](
-	left Pipeline[T, U], right Pipeline[U, V]) Pipeline[T, V] {
+	first Pipeline[T, U], second Pipeline[U, V]) Pipeline[T, V] {
 	return func(inner Consumer[V]) Consumer[T] {
-		return left(right(inner))
+		return first(second(inner))
 	}
 }
 
@@ -71,5 +71,12 @@ func PSlice[T any](start, end int) Pipeline[T, T] {
 func PTakeWhile[T any](filter func(value T) bool) Pipeline[T, T] {
 	return func(inner Consumer[T]) Consumer[T] {
 		return TakeWhile(inner, filter)
+	}
+}
+
+// Identity returns a Pipeline that emits the same T values it receives.
+func Identity[T any]() Pipeline[T, T] {
+	return func(inner Consumer[T]) Consumer[T] {
+		return inner
 	}
 }

@@ -17,6 +17,7 @@ func TestPipeline(t *testing.T) {
 		pipeline, consume2.PMap(strconv.Itoa))
 	pipelineStr = consume2.Join(
 		pipelineStr, consume2.PSlice[string](3, 8))
+	pipelineStr = consume2.Join(pipelineStr, consume2.Identity[string]())
 	var x []string
 	feedInts(pipelineStr.AppendTo(&x))
 	assert.Equal(t, []string{"21", "27", "33", "39", "45"}, x)
