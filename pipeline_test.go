@@ -55,4 +55,13 @@ func TestPipeline2(t *testing.T) {
 	var answer []string
 	consume2.FromSlice(people, pipelineStr.AppendTo(&answer))
 	assert.Equal(t, []string{"A", "C", "E"}, answer)
+	var answer2 stringArr
+	consume2.FromSlice(people, pipelineStr.Call(answer2.Append))
+	assert.Equal(t, stringArr{"A", "C", "E"}, answer2)
+}
+
+type stringArr []string
+
+func (s *stringArr) Append(x string) {
+	*s = append(*s, x)
 }

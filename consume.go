@@ -1,4 +1,4 @@
-// Package consume2 provides ways to consume go values using generics.
+// Package consume2 builds pipelines that consume values using Go generics.
 package consume2
 
 // Consumer[T] consumes values of type T.

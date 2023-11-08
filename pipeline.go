@@ -11,6 +11,12 @@ func (p Pipeline[T, U]) Run(consumer Consumer[U]) Consumer[T] {
 	return p(consumer)
 }
 
+// Call works like Run except that it calls f on each U value this
+// pipeline emits.
+func (p Pipeline[T, U]) Call(f func(value U)) Consumer[T] {
+	return p.Run(ConsumerFunc[U](f))
+}
+
 // AppendTo returns a Consumer that collects the T values for this pipeline
 // and appends the U values this pipeline emits to aSlicePtr.
 func (p Pipeline[T, U]) AppendTo(aSlicePtr *[]U) Consumer[T] {
