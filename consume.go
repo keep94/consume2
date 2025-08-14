@@ -44,6 +44,12 @@ func AppendTo[T any](aSlicePtr *[]T) Consumer[T] {
 	return (*appendConsumer[T])(aSlicePtr)
 }
 
+// Call[T] returns a Consumer[T] that calls f for each value it consumes.
+// The CanConsume method of returned consumer always returns true.
+func Call[T any](f func(value T)) Consumer[T] {
+	return ConsumerFunc[T](f)
+}
+
 // AppendPtrsTo[T] returns a Consumer[T] that appends pointers to values
 // to the slice pointed to by aSlicePtr. The CanConsume method of returned
 // consumer always returns true.

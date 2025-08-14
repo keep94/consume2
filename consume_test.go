@@ -48,6 +48,17 @@ func TestConsumerFunc(t *testing.T) {
 	assert.True(consumer.CanConsume())
 }
 
+func TestCall(t *testing.T) {
+	assert := assert.New(t)
+	var x int
+	f := func(value int) { x += value }
+	consumer := consume2.Call(f)
+	consumer.Consume(4)
+	consumer.Consume(5)
+	assert.Equal(9, x)
+	assert.True(consumer.CanConsume())
+}
+
 func TestPageBuilder_PageZero(t *testing.T) {
 	assert := assert.New(t)
 	pager := consume2.NewPageBuilder[int](0, 5)

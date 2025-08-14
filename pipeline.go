@@ -14,13 +14,20 @@ func (p Pipeline[T, U]) Run(consumer Consumer[U]) Consumer[T] {
 // Call works like Run except that it calls f on each U value this
 // pipeline emits.
 func (p Pipeline[T, U]) Call(f func(value U)) Consumer[T] {
-	return p.Run(ConsumerFunc[U](f))
+	return p.Run(Call(f))
 }
 
 // AppendTo returns a Consumer that collects the T values for this pipeline
 // and appends the U values this pipeline emits to aSlicePtr.
 func (p Pipeline[T, U]) AppendTo(aSlicePtr *[]U) Consumer[T] {
 	return p.Run(AppendTo(aSlicePtr))
+}
+
+// AppendPtrsTo returns a Consumer that collects the T values for this
+// pipeline and appends the pointers to the U values this pipeline emits
+// to aSlicePtr.
+func (p Pipeline[T, U]) AppendPtrsTo(aSlicePtr *[]*U) Consumer[T] {
+	return p.Run(AppendPtrsTo(aSlicePtr))
 }
 
 // Join joins two pipelines into a single pipeline.
